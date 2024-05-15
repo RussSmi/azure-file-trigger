@@ -1,0 +1,106 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "Written blob to storage, full path is:\n @{body('Upload_blob_to_storage_container')?['properties']?['blobFullPathWithContainer']}"
+                },
+                "runAfter": {
+                    "Audit_File_-_Stored_Content": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Upload_blob_to_storage_container": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "containerName": "backend-api",
+                        "blobName": "@triggerBody()?['FileName']",
+                        "content": "@triggerBody()?['FileContent']",
+                        "overrideIfExists": "true"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureBlob",
+                        "operationId": "uploadBlob",
+                        "serviceProviderId": "/serviceProviders/AzureBlob"
+                    }
+                },
+                "runAfter": {
+                    "Audit_File_-_Received": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Audit_File_-_Received": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "tableName": "audit",
+                        "entity": {
+                            "PartitionKey": "@{triggerBody()?['FileName']}",
+                            "RowKey": "Backend-API:ReceivedFile",
+                            "Message": "Received a new file"
+                        }
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "azureTables",
+                        "operationId": "upsertEntity",
+                        "serviceProviderId": "/serviceProviders/azureTables"
+                    }
+                },
+                "runAfter": {}
+            },
+            "Audit_File_-_Stored_Content": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "tableName": "audit",
+                        "entity": {
+                            "PartitionKey": "@{triggerBody()?['FileName']}",
+                            "RowKey": "Backend-API:WrittenBlob",
+                            "Message": "Written file to backend-api container, path: @{body('Upload_blob_to_storage_container')?['properties']?['blobFullPathWithContainer']}"
+                        },
+                        "updateMode": "Replace"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "azureTables",
+                        "operationId": "upsertEntity",
+                        "serviceProviderId": "/serviceProviders/azureTables"
+                    }
+                },
+                "runAfter": {
+                    "Upload_blob_to_storage_container": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "FileName": {
+                                "type": "string"
+                            },
+                            "FileContent": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "APP_KIND": "workflowapp",
+    "ProjectDirectoryPath": "c:\\repos\\RussSmi\\azure-file-trigger\\logicapps",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "WORKFLOWS_TENANT_ID": "250a47bb-16e6-4d87-a1ac-e997f2f762d2",
+    "WORKFLOWS_SUBSCRIPTION_ID": "0fbef83c-cd34-4194-848c-f15d2b296ab3",
+    "WORKFLOWS_RESOURCE_GROUP_NAME": "rg-file-share-poc",
+    "WORKFLOWS_LOCATION_NAME": "uksouth",
+    "WORKFLOWS_MANAGEMENT_BASE_URI": "https://management.azure.com/",
+    "AzureFile_storageAccountUri": "https://fileshrihgkbx4bzdhug.file.core.windows.net/inbound",
+    "AzureFile_11_storageAccountUri": "https://fileshrihgkbx4bzdhug.file.core.windows.net",
+    "azureTables_tableStorageEndpoint": "https://fileshrihgkbx4bzdhug.table.core.windows.net",
+    "AzureBlob_blobStorageEndpoint": "https://fileshrihgkbx4bzdhug.blob.core.windows.net",
+    "backend-apiUrl": "https://la-file-share-poc.azurewebsites.net:443/api/backend-api/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=L0iGsZp6rOw6OjVpjf5daN0eJ1C1Qzrz0ZePptHQaFc"
+  }
+}

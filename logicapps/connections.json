@@ -1,0 +1,57 @@
+{
+  "serviceProviderConnections": {
+    "AzureFile": {
+      "parameterValues": {
+        "storageAccountUri": "@appsetting('AzureFile_storageAccountUri')",
+        "authProvider": {
+          "Type": "ManagedServiceIdentity"
+        }
+      },
+      "parameterSetName": "ManagedServiceIdentity",
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureFile"
+      },
+      "displayName": "fileShareinboundConnection"
+    },
+    "AzureFile-1": {
+      "parameterValues": {
+        "storageAccountUri": "@appsetting('AzureFile_11_storageAccountUri')",
+        "authProvider": {
+          "Type": "ManagedServiceIdentity"
+        }
+      },
+      "parameterSetName": "ManagedServiceIdentity",
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureFile"
+      },
+      "displayName": "fileShareInbooundConnection"
+    },
+    "azureTables": {
+      "parameterValues": {
+        "tableStorageEndpoint": "@appsetting('azureTables_tableStorageEndpoint')",
+        "authProvider": {
+          "Type": "ManagedServiceIdentity"
+        }
+      },
+      "parameterSetName": "ManagedServiceIdentity",
+      "serviceProvider": {
+        "id": "/serviceProviders/azureTables"
+      },
+      "displayName": "auditTableConnection"
+    },
+    "AzureBlob": {
+      "parameterValues": {
+        "blobStorageEndpoint": "@appsetting('AzureBlob_blobStorageEndpoint')",
+        "authProvider": {
+          "Type": "ManagedServiceIdentity"
+        }
+      },
+      "parameterSetName": "ManagedServiceIdentity",
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      },
+      "displayName": "blobStorageConnection"
+    }
+  },
+  "managedApiConnections": {}
+}

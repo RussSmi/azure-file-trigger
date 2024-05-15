@@ -1,0 +1,309 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "List_files": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "folderId": "inbound"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureFile-1",
+                        "operationId": "listFolder",
+                        "serviceProviderId": "/serviceProviders/AzureFile"
+                    }
+                },
+                "runAfter": {}
+            },
+            "For_each": {
+                "type": "foreach",
+                "foreach": "@outputs('List_files')?['body']",
+                "actions": {
+                    "IsFile": {
+                        "type": "If",
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@variables('varIsFolder')",
+                                        "False"
+                                    ]
+                                }
+                            ]
+                        },
+                        "actions": {
+                            "Copy_file": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "SourceFilePath": "@items('For_each')?['path']",
+                                        "destinationFilePath": "@replace(toLower(item()?['path']),'inbound','archive')",
+                                        "overwrite": true
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "AzureFile-1",
+                                        "operationId": "copyFile",
+                                        "serviceProviderId": "/serviceProviders/AzureFile"
+                                    }
+                                }
+                            },
+                            "Audit_File_moved_to_archive_folder": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "tableName": "audit",
+                                        "entity": {
+                                            "PartitionKey": "@{item()?['name']}",
+                                            "RowKey": "ArchiveFile",
+                                            "Message": "File moved to archive"
+                                        }
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "azureTables",
+                                        "operationId": "upsertEntity",
+                                        "serviceProviderId": "/serviceProviders/azureTables"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Copy_file": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            },
+                            "Audit_File_moved_failed": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "tableName": "audit",
+                                        "entity": {
+                                            "PartitionKey": "@{item()?['name']}",
+                                            "RowKey": "ArchiveFile",
+                                            "Message": "Failed to move file to archive"
+                                        }
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "azureTables",
+                                        "operationId": "upsertEntity",
+                                        "serviceProviderId": "/serviceProviders/azureTables"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Copy_file": [
+                                        "FAILED"
+                                    ]
+                                }
+                            },
+                            "Delete_file": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "fileId": "@item()?['path']"
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "AzureFile-1",
+                                        "operationId": "deleteFile",
+                                        "serviceProviderId": "/serviceProviders/AzureFile"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Call_backend_api": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            },
+                            "Audit_File_Deleted": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "tableName": "audit",
+                                        "entity": {
+                                            "PartitionKey": "@{item()?['name']}",
+                                            "RowKey": "DeleteFile",
+                                            "Message": "file deleted from inbound share"
+                                        }
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "azureTables",
+                                        "operationId": "upsertEntity",
+                                        "serviceProviderId": "/serviceProviders/azureTables"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Delete_file": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            },
+                            "Call_backend_api": {
+                                "type": "Http",
+                                "inputs": {
+                                    "uri": "@appsetting('backend-apiUrl')",
+                                    "method": "POST",
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "body": "@outputs('Compose')"
+                                },
+                                "runAfter": {
+                                    "Audit_File_In_Process": [
+                                        "SUCCEEDED"
+                                    ]
+                                },
+                                "runtimeConfiguration": {
+                                    "contentTransfer": {
+                                        "transferMode": "Chunked"
+                                    }
+                                }
+                            },
+                            "Get_file_content": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "fileId": "@body('Copy_file')?['path']",
+                                        "inferContentType": true
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "AzureFile-1",
+                                        "operationId": "getFileContent",
+                                        "serviceProviderId": "/serviceProviders/AzureFile"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Audit_File_moved_to_archive_folder": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            },
+                            "Audit_File_In_Process": {
+                                "type": "ServiceProvider",
+                                "inputs": {
+                                    "parameters": {
+                                        "tableName": "audit",
+                                        "entity": {
+                                            "PartitionKey": "@{item()?['name']}",
+                                            "RowKey": "ProcessFile",
+                                            "Message": "File opened, sending to backend api"
+                                        }
+                                    },
+                                    "serviceProviderConfiguration": {
+                                        "connectionName": "azureTables",
+                                        "operationId": "upsertEntity",
+                                        "serviceProviderId": "/serviceProviders/azureTables"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Compose": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            },
+                            "Compose": {
+                                "type": "Compose",
+                                "inputs": {
+                                    "FileName": "@{item()?['name']}",
+                                    "FileContent": "@{body('Get_file_content')}"
+                                },
+                                "runAfter": {
+                                    "Get_file_content": [
+                                        "SUCCEEDED"
+                                    ]
+                                }
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Audit_found_folder": {
+                                    "type": "ServiceProvider",
+                                    "inputs": {
+                                        "parameters": {
+                                            "tableName": "audit",
+                                            "entity": {
+                                                "PartitionKey": "@{item()?['name']}",
+                                                "RowKey": "FoundFolder",
+                                                "Message": "Processing File found a folder not a file"
+                                            }
+                                        },
+                                        "serviceProviderConfiguration": {
+                                            "connectionName": "azureTables",
+                                            "operationId": "upsertEntity",
+                                            "serviceProviderId": "/serviceProviders/azureTables"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Audit_New_File": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Set_varIsFolder": {
+                        "type": "SetVariable",
+                        "inputs": {
+                            "name": "varIsFolder",
+                            "value": "@{string(item()?['isFolder'])}"
+                        }
+                    },
+                    "Audit_New_File": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "tableName": "audit",
+                                "entity": {
+                                    "PartitionKey": "@{item()?['name']}",
+                                    "RowKey": "New File",
+                                    "Message": "Processing File"
+                                }
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "azureTables",
+                                "operationId": "upsertEntity",
+                                "serviceProviderId": "/serviceProviders/azureTables"
+                            }
+                        },
+                        "runAfter": {
+                            "Set_varIsFolder": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Initialize_varIsFolder_variable": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Initialize_varIsFolder_variable": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varIsFolder",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "List_files": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "interval": 3,
+                    "frequency": "Minute"
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}
