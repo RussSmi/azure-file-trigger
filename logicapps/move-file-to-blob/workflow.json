@@ -1,0 +1,190 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "List_files": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "folderId": "to-blob"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureFile-1",
+                        "operationId": "listFolder",
+                        "serviceProviderId": "/serviceProviders/AzureFile"
+                    }
+                },
+                "runAfter": {}
+            },
+            "For_each": {
+                "type": "foreach",
+                "foreach": "@outputs('List_files')?['body']",
+                "actions": {
+                    "Get_file_content": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "fileId": "@items('For_each')?['path']",
+                                "inferContentType": true
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "AzureFile-1",
+                                "operationId": "getFileContent",
+                                "serviceProviderId": "/serviceProviders/AzureFile"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Audit_new_file": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Upload_blob_to_storage_container": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "containerName": "blob-trigger",
+                                "blobName": "@item()?['name']",
+                                "content": "@body('Get_file_content')",
+                                "overrideIfExists": "true"
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "AzureBlob",
+                                "operationId": "uploadBlob",
+                                "serviceProviderId": "/serviceProviders/AzureBlob"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Get_file_content": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Audit_new_file": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "tableName": "audit",
+                                "entity": {
+                                    "PartitionKey": "@{item()?['name']}",
+                                    "RowKey": "FileTrigger:NewFile",
+                                    "Message": "Found file at trigger location"
+                                }
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "azureTables",
+                                "operationId": "upsertEntity",
+                                "serviceProviderId": "/serviceProviders/azureTables"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        }
+                    },
+                    "Audit_blob_created": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "tableName": "audit",
+                                "entity": {
+                                    "PartitionKey": "@{item()?['name']}",
+                                    "RowKey": "FileTrigger:Blob created",
+                                    "Message": "Blob created here: @{body('Upload_blob_to_storage_container')?['properties']?['blobFullPathWithContainer']}"
+                                }
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "azureTables",
+                                "operationId": "upsertEntity",
+                                "serviceProviderId": "/serviceProviders/azureTables"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Upload_blob_to_storage_container": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Delete_file": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "fileId": "@item()?['path']"
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "AzureFile-1",
+                                "operationId": "deleteFile",
+                                "serviceProviderId": "/serviceProviders/AzureFile"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Audit_blob_created": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Audit_file_deleted": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "tableName": "audit",
+                                "entity": {
+                                    "PartitionKey": "@{item()?['name']}",
+                                    "RowKey": "FileTrigger:File deleted",
+                                    "Message": "Deleted file"
+                                }
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "azureTables",
+                                "operationId": "upsertEntity",
+                                "serviceProviderId": "/serviceProviders/azureTables"
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Delete_file": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {
+                    "List_files": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "interval": 30,
+                    "frequency": "Second"
+                },
+                "conditions": [],
+                "runtimeConfiguration": {
+                    "concurrency": {
+                        "runs": 1
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

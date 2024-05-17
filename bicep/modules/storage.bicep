@@ -8,6 +8,7 @@ param prefix string
 var storageAccountName = '${prefix}${uniqueString(resourceGroup().id)}'
 var fileShareNameInbound = 'inbound'
 var fileShareNameArchive = 'archive'
+var fileShareNameToBlob = 'to-blob'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
@@ -29,7 +30,7 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01
 // add azure file services
 resource fileServices 'Microsoft.Storage/storageAccounts/fileServices@2023-04-01' = {
   parent: storageAccount
-  name: 'default'
+  name: 'default'  
 }
 
 resource fileShareInbound 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-04-01' = {
@@ -40,6 +41,11 @@ resource fileShareInbound 'Microsoft.Storage/storageAccounts/fileServices/shares
 resource fileShareArchive 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-04-01' = {
   parent: fileServices
   name: fileShareNameArchive
+}
+
+resource fileShareToBlob 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-04-01' = {
+  parent: fileServices
+  name: fileShareNameToBlob
 }
 
 resource tableServices 'Microsoft.Storage/storageAccounts/tableServices@2023-04-01' = {
@@ -54,7 +60,12 @@ resource auditTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023
 
 resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-04-01' = {
   parent: blobServices
-  name: 'backed-api'
+  name: 'backend-api'
+}
+
+resource blobContainersTrigger 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-04-01' = {
+  parent: blobServices
+  name: 'blob-trigger'
 }
 
 output storageAccountName string = storageAccount.name

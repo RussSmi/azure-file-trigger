@@ -1,18 +1,5 @@
 {
   "serviceProviderConnections": {
-    "AzureFile": {
-      "parameterValues": {
-        "storageAccountUri": "@appsetting('AzureFile_storageAccountUri')",
-        "authProvider": {
-          "Type": "ManagedServiceIdentity"
-        }
-      },
-      "parameterSetName": "ManagedServiceIdentity",
-      "serviceProvider": {
-        "id": "/serviceProviders/AzureFile"
-      },
-      "displayName": "fileShareinboundConnection"
-    },
     "AzureFile-1": {
       "parameterValues": {
         "storageAccountUri": "@appsetting('AzureFile_11_storageAccountUri')",
