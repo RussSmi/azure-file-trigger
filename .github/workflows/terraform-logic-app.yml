@@ -38,6 +38,7 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: terraform
 
     steps:
     
@@ -49,10 +50,6 @@ jobs:
     #- uses: azure/login@v1
     #  with:
     #    creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    # Change to terraform folder
-    - name: Change Directory
-      run: cd terraform
 
     - name: Pwd
       run: pwd
