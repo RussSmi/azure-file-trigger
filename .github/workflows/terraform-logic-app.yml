@@ -54,6 +54,12 @@ jobs:
     - name: Change Directory
       run: cd terraform
 
+    - name: Pwd
+      run: pwd
+      
+    - name: List Files
+      run: ls  
+
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
