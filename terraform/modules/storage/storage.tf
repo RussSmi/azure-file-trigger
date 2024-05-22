@@ -31,3 +31,9 @@ resource "azurerm_storage_share" "shares" {
   storage_account_name = azurerm_storage_account.file-trigger.name
   quota                = 2
 }
+
+# 
+resource "azurerm_storage_table" "audit" {  
+  name                 = "audit"
+  storage_account_name = azurerm_storage_account.file-trigger.name
+}
