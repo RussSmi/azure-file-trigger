@@ -33,7 +33,7 @@ variable "env" {
 }
 
 variable "external_storage_name" {
-  type        = string
+  type = string
 }
 
 

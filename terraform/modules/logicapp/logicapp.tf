@@ -43,12 +43,70 @@ resource "azurerm_logic_app_standard" "file-trigger-la" {
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME"     = "node"
     "WEBSITE_NODE_DEFAULT_VERSION" = "~18"
-    "WORKFLOWS_RESOURCE_GROUP_NAME": var.rg,
-    "WORKFLOWS_LOCATION_NAME": var.location,
-    "WORKFLOWS_MANAGEMENT_BASE_URI": "https://management.azure.com/",
-    "AzureFile_storageAccountUri": "https://${var.external_storage_name}.file.core.windows.net/inbound",
-    "AzureFile_11_storageAccountUri": "https://${var.external_storage_name}.file.core.windows.net",
-    "azureTables_tableStorageEndpoint": "https://${var.external_storage_name}.table.core.windows.net",
-    "AzureBlob_blobStorageEndpoint": "https://${var.external_storage_name}.blob.core.windows.net",
+    "WORKFLOWS_RESOURCE_GROUP_NAME" : var.rg,
+    "WORKFLOWS_LOCATION_NAME" : var.location,
+    "WORKFLOWS_MANAGEMENT_BASE_URI" : "https://management.azure.com/",
+    "AzureFile_storageAccountUri" : "https://${var.external_storage_name}.file.core.windows.net/inbound",
+    "AzureFile_11_storageAccountUri" : "https://${var.external_storage_name}.file.core.windows.net",
+    "azureTables_tableStorageEndpoint" : "https://${var.external_storage_name}.table.core.windows.net",
+    "AzureBlob_blobStorageEndpoint" : "https://${var.external_storage_name}.blob.core.windows.net",
   }
 }
+
+data "azurerm_storage_account" "external" {
+  name                = var.external_storage_name
+  resource_group_name = var.rg
+}
+
+data "azurerm_storage_share" "archive" {
+  name                 = "archive"
+  storage_account_name = var.external_storage_name
+}
+
+data "azurerm_storage_share" "inbound" {
+  name                 = "inbound"
+  storage_account_name = var.external_storage_name
+}
+
+data "azurerm_storage_share" "to-blob" {
+  name                 = "to-blob"
+  storage_account_name = var.external_storage_name
+}
+
+// Add MSI access to storage account
+resource "azurerm_role_assignment" "blob" {
+  scope                = data.azurerm_storage_account.external.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "reader" {
+  scope                = data.azurerm_storage_account.external.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "table" {
+  scope                = data.azurerm_storage_account.external.id
+  role_definition_name = "Storage Table Data Contributor"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "archive" {
+  scope                = data.azurerm_storage_share.archive.id
+  role_definition_name = "Storage File Data Privileged Contributor"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "inbound" {
+  scope                = data.azurerm_storage_share.inbound.id
+  role_definition_name = "Storage File Data Privileged Contributor"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "to-blob" {
+  scope                = data.azurerm_storage_share.to-blob.id
+  role_definition_name = "Storage File Data Privileged Contributor"
+  principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
+}
+

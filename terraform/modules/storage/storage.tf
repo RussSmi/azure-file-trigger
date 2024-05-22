@@ -33,7 +33,7 @@ resource "azurerm_storage_share" "shares" {
 }
 
 # 
-resource "azurerm_storage_table" "audit" {  
+resource "azurerm_storage_table" "audit" {
   name                 = "audit"
   storage_account_name = azurerm_storage_account.file-trigger.name
 }
