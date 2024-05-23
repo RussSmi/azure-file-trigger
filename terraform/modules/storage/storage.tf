@@ -37,3 +37,11 @@ resource "azurerm_storage_table" "audit" {
   name                 = "audit"
   storage_account_name = azurerm_storage_account.file-trigger.name
 }
+
+output "storage_account_name" {
+  value = azurerm_storage_account.file-trigger.name
+}
+
+output "to-blob-share-id" {
+  value = azurerm_storage_share.shares[2].id
+}

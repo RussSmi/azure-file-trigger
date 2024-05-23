@@ -39,10 +39,11 @@ resource "azurerm_logic_app_standard" "file-trigger-la" {
   app_service_plan_id        = azurerm_app_service_plan.file-trigger-la.id
   storage_account_name       = azurerm_storage_account.file-trigger-la.name
   storage_account_access_key = azurerm_storage_account.file-trigger-la.primary_access_key
+  version = "~4"
 
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME"     = "node"
-    "WEBSITE_NODE_DEFAULT_VERSION" = "~18"
+    "WEBSITE_NODE_DEFAULT_VERSION" = "~14"
     "WORKFLOWS_RESOURCE_GROUP_NAME" : var.rg,
     "WORKFLOWS_LOCATION_NAME" : var.location,
     "WORKFLOWS_MANAGEMENT_BASE_URI" : "https://management.azure.com/",
@@ -50,6 +51,15 @@ resource "azurerm_logic_app_standard" "file-trigger-la" {
     "AzureFile_11_storageAccountUri" : "https://${var.external_storage_name}.file.core.windows.net",
     "azureTables_tableStorageEndpoint" : "https://${var.external_storage_name}.table.core.windows.net",
     "AzureBlob_blobStorageEndpoint" : "https://${var.external_storage_name}.blob.core.windows.net",
+    "WEBSITE_RUN_FROM_PACKAGE" = "",
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = "",
+    "backend-apiUrl": ""
+  }
+  identity {
+    type = "SystemAssigned"  
+  }
+  site_config {
+    use_32_bit_worker_process = true
   }
 }
 
@@ -93,19 +103,19 @@ resource "azurerm_role_assignment" "table" {
 }
 
 resource "azurerm_role_assignment" "archive" {
-  scope                = data.azurerm_storage_share.archive.id
+  scope                = data.azurerm_storage_share.archive.resource_manager_id
   role_definition_name = "Storage File Data Privileged Contributor"
   principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "inbound" {
-  scope                = data.azurerm_storage_share.inbound.id
+  scope                = data.azurerm_storage_share.inbound.resource_manager_id
   role_definition_name = "Storage File Data Privileged Contributor"
   principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "to-blob" {
-  scope                = data.azurerm_storage_share.to-blob.id
+  scope                = data.azurerm_storage_share.to-blob.resource_manager_id
   role_definition_name = "Storage File Data Privileged Contributor"
   principal_id         = azurerm_logic_app_standard.file-trigger-la.identity[0].principal_id
 }

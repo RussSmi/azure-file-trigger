@@ -36,6 +36,10 @@ variable "external_storage_name" {
   type = string
 }
 
+variable "to-blob-id" {
+  type = string
+}
+
 
 
 

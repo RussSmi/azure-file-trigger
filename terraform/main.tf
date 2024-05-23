@@ -21,3 +21,14 @@ module "storage" {
   env      = var.env
   instance = var.instance
 }
+
+module "logicapp" {
+  source                = "./modules/logicapp"
+  location              = local.resource_location
+  ident                 = var.ident
+  rg                    = azurerm_resource_group.file-trigger.name
+  env                   = var.env
+  instance              = var.instance
+  external_storage_name = module.storage.storage_account_name
+  to-blob-id            = module.storage.to-blob-share-id
+}
