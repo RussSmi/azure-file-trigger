@@ -39,7 +39,7 @@ resource "azurerm_logic_app_standard" "file-trigger-la" {
   app_service_plan_id        = azurerm_app_service_plan.file-trigger-la.id
   storage_account_name       = azurerm_storage_account.file-trigger-la.name
   storage_account_access_key = azurerm_storage_account.file-trigger-la.primary_access_key
-  version = "~4"
+  version                    = "~4"
 
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME"     = "node"
@@ -51,12 +51,12 @@ resource "azurerm_logic_app_standard" "file-trigger-la" {
     "AzureFile_11_storageAccountUri" : "https://${var.external_storage_name}.file.core.windows.net",
     "azureTables_tableStorageEndpoint" : "https://${var.external_storage_name}.table.core.windows.net",
     "AzureBlob_blobStorageEndpoint" : "https://${var.external_storage_name}.blob.core.windows.net",
-    "WEBSITE_RUN_FROM_PACKAGE" = "",
+    "WEBSITE_RUN_FROM_PACKAGE"       = "",
     "APPINSIGHTS_INSTRUMENTATIONKEY" = "",
-    "backend-apiUrl": ""
+    "backend-apiUrl" : ""
   }
   identity {
-    type = "SystemAssigned"  
+    type = "SystemAssigned"
   }
   site_config {
     use_32_bit_worker_process = true
