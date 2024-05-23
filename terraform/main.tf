@@ -31,4 +31,5 @@ module "logicapp" {
   instance              = var.instance
   external_storage_name = module.storage.storage_account_name
   to-blob-id            = module.storage.to-blob-share-id
+  depends_on = [ module.storage ]
 }
